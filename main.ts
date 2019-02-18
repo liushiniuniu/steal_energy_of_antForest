@@ -166,6 +166,7 @@ class Collect {
                 Util.log('点完了')
                 break;
             }
+            
         }
 
         // var i=0;

@@ -3,23 +3,24 @@ var collectStrings = [
     "网络购票", "网购火车票", "生活缴费", "ETC缴费",
     "电子发票", "绿色办公", "咸鱼交易", "预约挂号"
 ];
-var morningTime = "21:40"; //自己运动能量生成时间
+var collectTime = '7:01:00'; //自己运动能量生成时间
+// const collectTime ='11:17:10';//自己运动能量生成时间
 var screenWidth = 1080;
 var screenHeight = 2340;
 var Main = /** @class */ (function () {
     function Main() {
     }
     Main.start = function () {
-        Util.log('12323131231231231');
+        var _this = this;
         auto("fast");
-        App.unlock();
         sleep(1000);
-        this.mainEntrence();
+        Time.countDown(collectTime, function () { return _this.mainEntrence(); });
     };
     //程序主入口
     Main.mainEntrence = function () {
+        App.unlock();
         //前置操作
-        App.prepareThings();
+        // App.prepareThings();
         //注册音量下按下退出脚本监听
         // Util.registEvent();
         //从主页进入蚂蚁森林主页
@@ -95,56 +96,17 @@ var Collect = /** @class */ (function () {
      * 遍历能量类型,收集自己的能量
      */
     Collect.collectionMyEnergy = function () {
-        Util.log('收自己的ing');
-        var energyRegex = Util.generateCollectionType();
-        var checkInMorning = false;
-        //如果是早上7点03分左右的话.等待主页能量出现 每隔一秒检测一次
-        while (Time.isMorningTime() && descEndsWith("行走").exists()) {
-            if (!checkInMorning) {
-                Util.log("等待运动能量生成中...");
-                checkInMorning = true;
-            }
-            descEndsWith("行走").find().forEach(function (pos) {
-                var posb = pos.bounds();
-                click(posb.centerX(), posb.centerY() - 80);
-                sleep(1500);
-            });
-        }
-        if (checkInMorning) {
-            Util.log("运动能量收集完成");
-        }
         sleep(2000);
-        Util.log('检测是否有可收集的能量' + descMatches(energyRegex).exists());
-        Util.log('查找的关键字' + energyRegex);
-        if (descMatches(energyRegex).exists()) {
-            if (!checkInMorning) {
-                Util.log("防止小树的提示遮挡,等待中");
-                sleep(3000);
-            }
-            //这里存在一定的问题：如果sleep时间短的话，就会出现循环代码在运行，循环之后的代码也在运行，感觉出现了异步，具体原因不明
-            var nodes = descMatches(energyRegex).find();
-            Util.log('收集的次数：' + nodes.size());
-            nodes.forEach(function (pos) {
-                var posb = pos.bounds();
-                //Util.log( posb.centerX());
-                click(posb.centerX(), posb.centerY() - 100);
-                sleep(3000);
-            });
-        }
-        Util.log("自己能量收集完成");
-        // swipe(500, 1000, 500, 800, 1000);
-        // Util.log("滑动")
-        Util.log(device.width + ',' + device.height);
         var beginX = 100;
         var beginY = 400;
         var endX = 850;
-        var enddY = 1000;
-        var isEndClick = false;
+        var enddY = 700;
+        var deltaX = 100;
         var curPosX = beginX;
         var curPosY = beginY;
         while (true) {
             click(curPosX, curPosY);
-            curPosX += 50;
+            curPosX += deltaX;
             if (curPosX >= endX) {
                 curPosX = beginX;
                 curPosY += 50;
@@ -154,17 +116,7 @@ var Collect = /** @class */ (function () {
                 break;
             }
         }
-        // var i=0;
-        // sleep(1000);
-        // //五次尝试蚂蚁森林入口
-        // while (!textEndsWith('线下支付').exists() && i<=2){
-        //     sleep(2000);
-        //     Util.log('找线下支付')
-        //     i++;
-        // }
-        // if (textEndsWith('成就').exists()) {
-        // Position.clickByText("成就",true,"请把蚂蚁森林入口添加到主页我的应用") 
-        // }
+        Util.log("自己能量收集完成");
     };
     /**
      * 进入排行榜
@@ -224,7 +176,7 @@ var Position = /** @class */ (function () {
             textEndsWith(energyType).find().forEach(function (pos) {
                 var posb = pos.bounds();
                 // click(posb.centerX(),posb.centerY()-60);
-                click(posb.centerX(), posb.centerY() - 200);
+                click(posb.centerX(), posb.centerY() - 100);
                 sleep(1500);
                 Collect.collectionMyEnergy();
             });
@@ -342,17 +294,23 @@ var App = /** @class */ (function () {
 var Time = /** @class */ (function () {
     function Time() {
     }
-    Time.isMorningTime = function () {
-        var now = new Date();
-        var hour = now.getHours();
-        var minu = now.getMinutes();
-        var targetTime = morningTime.split(":");
-        if (Number(targetTime[0]) == hour && Math.abs(Number(targetTime[1]) - minu) <= 2) {
-            return true;
-        }
-        else {
-            return false;
-        }
+    Time.countDown = function (sepcefiedTime, callBack) {
+        var sepecifiedTimes = sepcefiedTime.split(':');
+        var times = {
+            hours: parseInt(sepecifiedTimes[0]),
+            minutes: parseInt(sepecifiedTimes[1]),
+            seconds: parseInt(sepecifiedTimes[2]),
+        };
+        var restTime = null;
+        var nowTime = new Date();
+        var nowSeconds = nowTime.getHours() * 3600 + nowTime.getMinutes() * 60 + nowTime.getSeconds();
+        var targetSeconds = times.hours * 3600 + times.minutes * 60 + times.seconds;
+        //  判断是否已超过今日目标小时，若超过，时间间隔设置为距离明天目标小时的距离
+        restTime = targetSeconds > nowSeconds ? targetSeconds - nowSeconds : targetSeconds + 24 * 3600 - nowSeconds;
+        console.log('还剩' + restTime + '毫秒开始收集能量');
+        sleep(restTime * 1000);
+        callBack();
+        // setTimeout(callBack, restTime * 1000);
     };
     return Time;
 }());
